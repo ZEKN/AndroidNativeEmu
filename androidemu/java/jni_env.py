@@ -1482,8 +1482,17 @@ class JNIEnv:
         raise NotImplementedError()
 
     @native_method
-    def get_byte_array_elements(self, mu, env):
-        raise NotImplementedError()
+    def get_byte_array_elements(self, mu, env, jbytearr, booleanj):
+
+        ############################################  自己修改,  参考上面的 get_string_utf_chars 方法
+        obj = self.get_reference(jbytearr)
+        if not isinstance(obj, jbyteArray):
+            raise ValueError('Expected a jbyteArray.')
+
+        logger.debug("JNIEnv->GetByteArrayElements(%s, %x) was called" %(obj.value, booleanj))
+        str_ptr = self._emu.native_memory.allocate(len(obj.value))
+        mu.mem_write(str_ptr, bytes(obj.value))
+        return str_ptr
 
     @native_method
     def get_char_array_elements(self, mu, env):
@@ -1514,8 +1523,13 @@ class JNIEnv:
         raise NotImplementedError()
 
     @native_method
-    def release_byte_array_elements(self, mu, env):
-        raise NotImplementedError()
+    def release_byte_array_elements(self, mu, env, array_idx, cbarr, jmode):
+        ####################################################### 自己修改的
+        obj = self.get_reference(array_idx)
+        logger.debug("JNIEnv->ReleaseByteArrayElements was called, ptr:%d"%cbarr)
+        arrdat = memory_helpers.read_byte_array(mu, cbarr, len(obj.value)) 
+        self.set_local_reference(array_idx, jbyteArray(arrdat))
+        return None
 
     @native_method
     def release_char_array_elements(self, mu, env):
